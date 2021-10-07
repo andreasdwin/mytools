@@ -34,8 +34,23 @@ func printLogFile(outputChannel <-chan string, done chan<- bool) {
 	done <- true
 }
 
+func writeOutputFile(filePath string, outputChannel <-chan string, done chan<- bool) {
+	of, err := os.Create(filePath)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	defer of.Close()
+
+	for txt := range outputChannel {
+		of.WriteString(txt + "\n")
+	}
+
+	done <- true
+}
+
 func main() {
 	outputType := flag.String("t", PlainText, "output type (json or text)")
+	outputFilePath := flag.String("o", "", "output file path")
 	flag.Parse()
 
 	if len(os.Args) < 2 {
@@ -64,7 +79,11 @@ func main() {
 		readLogFile(logFilePath, outputChannel)
 	}()
 
-	go printLogFile(outputChannel, done)
+	if *outputFilePath != "" {
+  		go writeOutputFile(*outputFilePath, outputChannel, done)
+ 	} else {
+ 		go printLogFile(outputChannel, done)
+ 	}
 
 	<-done
 	close(done)
