@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -11,6 +12,41 @@ const (
 	PlainText string = "text"
 	JSON string = "json"
 )
+
+type userInput struct {
+	logFilePath string
+	outputType string
+	outputFilePath string
+}
+
+func getUserInput() (userInput, error) {
+	outputType := flag.String("t", PlainText, "output type (json or text)")
+	outputFilePath := flag.String("o", "", "output file path")
+	flag.Parse()
+
+	if len(os.Args) < 2 {
+		return userInput{}, errors.New("log file required")
+	}
+
+	logFilePath := flag.Arg(0)
+
+	if !(*outputType == PlainText || *outputType == JSON) {
+		return userInput{}, errors.New("invalid output type")
+	}
+
+	_, err := os.Stat(logFilePath)
+	if err != nil && os.IsNotExist(err) {
+		return userInput{}, errors.New("log file not exist")
+	}
+
+	inp := userInput{
+		logFilePath: logFilePath,
+		outputType: *outputType,
+		outputFilePath: *outputFilePath,
+	}
+
+	return inp, nil
+}
 
 func readLogFile(logFilePath string, outputChannel chan<- string) {
 	lf, err := os.Open(logFilePath)
@@ -49,25 +85,9 @@ func writeOutputFile(filePath string, outputChannel <-chan string, done chan<- b
 }
 
 func main() {
-	outputType := flag.String("t", PlainText, "output type (json or text)")
-	outputFilePath := flag.String("o", "", "output file path")
-	flag.Parse()
-
-	if len(os.Args) < 2 {
-		fmt.Println("please provide the log file")
-		return
-	}
-
-	logFilePath := flag.Arg(0)
-
-	if !(*outputType == PlainText || *outputType == JSON) {
-		fmt.Println("invalid output type")
-		return
-	}
-
-	_, err := os.Stat(logFilePath)
-	if err != nil && os.IsNotExist(err) {
-		fmt.Println("the log file does not exist")
+	input, err := getUserInput()
+	if err != nil {
+		fmt.Println(err.Error())
 		return
 	}
 
@@ -76,11 +96,11 @@ func main() {
 
 	go func() {
 		defer close(outputChannel)
-		readLogFile(logFilePath, outputChannel)
+		readLogFile(input.logFilePath, outputChannel)
 	}()
 
-	if *outputFilePath != "" {
-  		go writeOutputFile(*outputFilePath, outputChannel, done)
+	if input.outputFilePath != "" {
+  		go writeOutputFile(input.outputFilePath, outputChannel, done)
  	} else {
  		go printLogFile(outputChannel, done)
  	}
