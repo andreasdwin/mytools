@@ -11,12 +11,12 @@ import (
 
 const (
 	PlainText string = "text"
-	JSON string = "json"
+	JSON      string = "json"
 )
 
 type userInput struct {
-	logFilePath string
-	outputType string
+	logFilePath    string
+	outputType     string
 	outputFilePath string
 }
 
@@ -41,8 +41,8 @@ func getUserInput() (userInput, error) {
 	}
 
 	inp := userInput{
-		logFilePath: logFilePath,
-		outputType: *outputType,
+		logFilePath:    logFilePath,
+		outputType:     *outputType,
 		outputFilePath: *outputFilePath,
 	}
 
@@ -143,10 +143,10 @@ func main() {
 	}()
 
 	if input.outputFilePath != "" {
-  		go writeOutputFile(input.outputFilePath, input.outputType, outputChannel, done)
- 	} else {
- 		go printLogFile(input.outputType, outputChannel, done)
- 	}
+		go writeOutputFile(input.outputFilePath, input.outputType, outputChannel, done)
+	} else {
+		go printLogFile(input.outputType, outputChannel, done)
+	}
 
 	<-done
 	close(done)

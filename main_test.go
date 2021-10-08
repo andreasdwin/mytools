@@ -37,7 +37,7 @@ func TestUserInputLogDefaultFlag(t *testing.T) {
 
 	expectedInput := userInput{
 		logFilePath: tmpfile.Name(),
-		outputType: PlainText,
+		outputType:  PlainText,
 	}
 
 	if err != nil {
@@ -66,7 +66,7 @@ func TestUserInputLogJSONType(t *testing.T) {
 
 	expectedInput := userInput{
 		logFilePath: tmpfile.Name(),
-		outputType: JSON,
+		outputType:  JSON,
 	}
 
 	if err != nil {
@@ -114,8 +114,8 @@ func TestUserInputLogDefaultTypeWithOutputFile(t *testing.T) {
 	inp, err := getUserInput()
 
 	expectedInput := userInput{
-		logFilePath: tmpfile.Name(),
-		outputType: PlainText,
+		logFilePath:    tmpfile.Name(),
+		outputType:     PlainText,
 		outputFilePath: "dummy_log.txt",
 	}
 
@@ -144,8 +144,8 @@ func TestUserInputLogJSONWithOutputFile(t *testing.T) {
 	inp, err := getUserInput()
 
 	expectedInput := userInput{
-		logFilePath: tmpfile.Name(),
-		outputType: JSON,
+		logFilePath:    tmpfile.Name(),
+		outputType:     JSON,
 		outputFilePath: "dummy_log.json",
 	}
 
