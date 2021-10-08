@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -62,23 +63,65 @@ func readLogFile(logFilePath string, outputChannel chan<- string) {
 	}
 }
 
-func printLogFile(outputChannel <-chan string, done chan<- bool) {
-	for txt := range outputChannel {
-		fmt.Println(txt)
+func printLogFile(outputType string, outputChannel <-chan string, done chan<- bool) {
+	if outputType == PlainText {
+		for txt := range outputChannel {
+			fmt.Println(txt)
+		}
+	} else {
+		fmt.Print("[")
+
+		first := true
+		for str := range outputChannel {
+
+			if first {
+				first = false
+			} else {
+				fmt.Print(",")
+			}
+			jbyte, _ := json.Marshal(str)
+			fmt.Print("\n    " + string(jbyte))
+		}
+		if first {
+			fmt.Println("]")
+		} else {
+			fmt.Println("\n]")
+		}
 	}
 
 	done <- true
 }
 
-func writeOutputFile(filePath string, outputChannel <-chan string, done chan<- bool) {
+func writeOutputFile(filePath string, outputType string, outputChannel <-chan string, done chan<- bool) {
 	of, err := os.Create(filePath)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 	defer of.Close()
 
-	for txt := range outputChannel {
-		of.WriteString(txt + "\n")
+	if outputType == PlainText {
+		for txt := range outputChannel {
+			of.WriteString(txt + "\n")
+		}
+	} else {
+		of.WriteString("[")
+
+		first := true
+		for str := range outputChannel {
+
+			if first {
+				first = false
+			} else {
+				of.WriteString(",")
+			}
+			jbyte, _ := json.Marshal(str)
+			of.WriteString("\n    " + string(jbyte))
+		}
+		if first {
+			of.WriteString("]")
+		} else {
+			of.WriteString("\n]\n")
+		}
 	}
 
 	done <- true
@@ -100,9 +143,9 @@ func main() {
 	}()
 
 	if input.outputFilePath != "" {
-  		go writeOutputFile(input.outputFilePath, outputChannel, done)
+  		go writeOutputFile(input.outputFilePath, input.outputType, outputChannel, done)
  	} else {
- 		go printLogFile(outputChannel, done)
+ 		go printLogFile(input.outputType, outputChannel, done)
  	}
 
 	<-done

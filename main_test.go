@@ -187,7 +187,7 @@ func TestReadLogFile(t *testing.T) {
 	}
 }
 
-func TestPrintOutputFile(t *testing.T) {
+func TestPrintOutputFilePlainText(t *testing.T) {
 	logFile := []string{"08 Oct 2021 10:40:36.508 # Server initialized", "08 Oct 2021 10:40:36.513 # Ready to accept connections"}
 
 	outputChannel := make(chan string)
@@ -203,7 +203,7 @@ func TestPrintOutputFile(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	go printLogFile(outputChannel, done)
+	go printLogFile(PlainText, outputChannel, done)
 
 	<-done
 
@@ -218,7 +218,7 @@ func TestPrintOutputFile(t *testing.T) {
 	}
 }
 
-func TestWriteOutputFile(t *testing.T) {
+func TestWriteOutputFilePlainText(t *testing.T) {
 	outputFileName := "dummy_log.txt"
 
 	logFile := []string{"08 Oct 2021 10:40:36.508 # Server initialized", "08 Oct 2021 10:40:36.513 # Ready to accept connections"}
@@ -232,7 +232,7 @@ func TestWriteOutputFile(t *testing.T) {
 		close(outputChannel)
 	}()
 
-	go writeOutputFile(outputFileName, outputChannel, done)
+	go writeOutputFile(outputFileName, PlainText, outputChannel, done)
 
 	<-done
 
@@ -244,6 +244,69 @@ func TestWriteOutputFile(t *testing.T) {
 	defer os.Remove(outputFileName)
 
 	expectedFile := "08 Oct 2021 10:40:36.508 # Server initialized\n08 Oct 2021 10:40:36.513 # Ready to accept connections\n"
+
+	if string(outputFile) != expectedFile {
+		t.Errorf("expected %v, got %v", expectedFile, string(outputFile))
+	}
+}
+
+func TestPrintOutputFileJSON(t *testing.T) {
+	logFile := []string{"08 Oct 2021 10:40:36.508 # Server initialized", "08 Oct 2021 10:40:36.513 # Ready to accept connections"}
+
+	outputChannel := make(chan string)
+	done := make(chan bool)
+	go func() {
+		for _, log := range logFile {
+			outputChannel <- log
+		}
+		close(outputChannel)
+	}()
+
+	rescueStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	go printLogFile(JSON, outputChannel, done)
+
+	<-done
+
+	w.Close()
+	output, _ := ioutil.ReadAll(r)
+	os.Stdout = rescueStdout
+
+	expectedOutput := "[\n    \"08 Oct 2021 10:40:36.508 # Server initialized\",\n    \"08 Oct 2021 10:40:36.513 # Ready to accept connections\"\n]\n"
+
+	if string(output) != expectedOutput {
+		t.Errorf("expected %v, got %v", expectedOutput, string(output))
+	}
+}
+
+func TestWriteOutputFileJSON(t *testing.T) {
+	outputFileName := "dummy_log.json"
+
+	logFile := []string{"08 Oct 2021 10:40:36.508 # Server initialized", "08 Oct 2021 10:40:36.513 # Ready to accept connections"}
+
+	outputChannel := make(chan string)
+	done := make(chan bool)
+	go func() {
+		for _, log := range logFile {
+			outputChannel <- log
+		}
+		close(outputChannel)
+	}()
+
+	go writeOutputFile(outputFileName, JSON, outputChannel, done)
+
+	<-done
+
+	outputFile, err := ioutil.ReadFile(outputFileName)
+	if err != nil {
+		t.Errorf("error opening output file, got %v", err)
+		return
+	}
+	defer os.Remove(outputFileName)
+
+	expectedFile := "[\n    \"08 Oct 2021 10:40:36.508 # Server initialized\",\n    \"08 Oct 2021 10:40:36.513 # Ready to accept connections\"\n]\n"
 
 	if string(outputFile) != expectedFile {
 		t.Errorf("expected %v, got %v", expectedFile, string(outputFile))
